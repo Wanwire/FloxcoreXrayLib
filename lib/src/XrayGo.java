@@ -11,4 +11,5 @@ public class XrayGo {
         }
     }
     public native long libxrayMain(int argc, String[] argv, int envc, String[] envv);
+    public native void libxrayStop();
 }

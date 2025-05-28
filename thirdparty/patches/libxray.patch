@@ -1,7 +1,7 @@
-diff --git a/thirdparty/Xray-core-24.12.18/main/commands/base/execute.go b/thirdparty/Xray-core-24.12.18/main/commands/base/execute.go
+diff --git a/thirdparty/Xray-core-25.5.16/main/commands/base/execute.go b/thirdparty/Xray-core-25.5.16/main/commands/base/execute.go
 index 8e23dab..f67abae 100644
---- a/thirdparty/Xray-core-24.12.18/main/commands/base/execute.go
-+++ b/thirdparty/Xray-core-24.12.18/main/commands/base/execute.go
+--- a/thirdparty/Xray-core-25.5.16/main/commands/base/execute.go
++++ b/thirdparty/Xray-core-25.5.16/main/commands/base/execute.go
 @@ -38,8 +38,7 @@ BigCmdLoop:
  				args = args[1:]
  				if len(args) == 0 {
@@ -30,55 +30,65 @@ index 8e23dab..f67abae 100644
  	}
  }
  
-diff --git a/thirdparty/Xray-core-24.12.18/main/main.go b/thirdparty/Xray-core-24.12.18/main/main.go
-index e8824e6..2bee001 100644
---- a/thirdparty/Xray-core-24.12.18/main/main.go
-+++ b/thirdparty/Xray-core-24.12.18/main/main.go
-@@ -1,14 +1,43 @@
+diff --git a/thirdparty/Xray-core-25.5.16/main/main.go b/thirdparty/Xray-core-25.5.16/main/main.go
+index e8824e6..41fbc21 100644
+--- a/thirdparty/Xray-core-25.5.16/main/main.go
++++ b/thirdparty/Xray-core-25.5.16/main/main.go
+@@ -1,17 +1,52 @@
  package main
  
  import (
-+	"C"
++        "C"
  	"flag"
  	"os"
-+	"strings"
-+	"unsafe"
++        "strings"
++        "unsafe"
  
  	"github.com/xtls/xray-core/main/commands/base"
  	_ "github.com/xtls/xray-core/main/distro/all"
  )
  
 +var signalledExit bool
++var flagsParsed bool
++var osArgs []string
 +
  func main() {
+-	os.Args = getArgsV4Compatible()
 +}
 +
 +//export libxray_main
 +func libxray_main(argc C.int, argv **C.char, envc C.int, envv **C.char) int {
 +	signalledExit = false
++        argc_length := int(argc)
++        argv_slice := (*[1 << 20]*C.char)(unsafe.Pointer(argv))[:argc_length:argc_length]
++        args := make([]string, argc_length)
++        for i, s := range argv_slice {
++                args[i] = C.GoString(s)
++        }
 +
-+	argc_length := int(argc)
-+	argv_slice := (*[1 << 20]*C.char)(unsafe.Pointer(argv))[:argc_length:argc_length]
-+	args := make([]string, argc_length)
-+	for i, s := range argv_slice {
-+		args[i] = C.GoString(s)
++        // set xray environment vars such as "xray.location.asset=/path/to/dir/holding/geosite.dat"
++        envc_length := int(envc)
++        envv_slice := (*[1 << 20]*C.char)(unsafe.Pointer(envv))[:envc_length:envc_length]
++        for _, s := range envv_slice {
++                keyval := strings.Split(C.GoString(s), "=")
++                if len(keyval) == 2 {
++                        os.Setenv(keyval[0], keyval[1])
++                }
++        }
++
++	if !flagsParsed {
++		os.Args = args
++		osArgs = getArgsV4Compatible()
++		flagsParsed = true
 +	}
-+
-+	// set xray environment vars such as "xray.location.asset=/path/to/dir/holding/geosite.dat"
-+	envc_length := int(envc)
-+	envv_slice := (*[1 << 20]*C.char)(unsafe.Pointer(envv))[:envc_length:envc_length]
-+	for _, s := range envv_slice {
-+		keyval := strings.Split(C.GoString(s), "=")
-+		if len(keyval) == 2 {
-+			os.Setenv(keyval[0], keyval[1])
-+		}
-+	}
-+
-+	os.Args = args
- 	os.Args = getArgsV4Compatible()
++        os.Args = osArgs
  
  	base.RootCommand.Long = "Xray is a platform for building proxies."
-@@ -20,6 +49,10 @@ func main() {
++	base.RootCommand.Commands = nil // Reset commands to avoid duplicates
+ 	base.RootCommand.Commands = append(
+ 		[]*base.Command{
+ 			cmdRun,
+@@ -20,6 +55,17 @@ func main() {
  		base.RootCommand.Commands...,
  	)
  	base.Execute()
@@ -86,14 +96,30 @@ index e8824e6..2bee001 100644
 +		return 0
 +	}
 +	return 1
++}
++
++//export libxray_stop
++func libxray_stop() {
++	if stopChan != nil {
++		close(stopChan)
++	}
  }
  
  func getArgsV4Compatible() []string {
-diff --git a/thirdparty/Xray-core-24.12.18/main/run.go b/thirdparty/Xray-core-24.12.18/main/run.go
-index 4134fb6..56e4280 100644
---- a/thirdparty/Xray-core-24.12.18/main/run.go
-+++ b/thirdparty/Xray-core-24.12.18/main/run.go
-@@ -78,17 +78,17 @@ func executeRun(cmd *base.Command, args []string) {
+diff --git a/thirdparty/Xray-core-25.5.16/main/run.go b/thirdparty/Xray-core-25.5.16/main/run.go
+index f74085d..890b890 100644
+--- a/thirdparty/Xray-core-25.5.16/main/run.go
++++ b/thirdparty/Xray-core-25.5.16/main/run.go
+@@ -67,6 +67,8 @@ var (
+ 	}()
+ )
+ 
++var stopChan chan struct {}
++
+ func executeRun(cmd *base.Command, args []string) {
+ 	if *dump {
+ 		clog.ReplaceWithSeverityLogger(clog.Severity_Warning)
+@@ -79,17 +81,17 @@ func executeRun(cmd *base.Command, args []string) {
  	if err != nil {
  		fmt.Println("Failed to start:", err)
  		// Configuration error. Exit with a special value to prevent systemd from restarting.
@@ -114,14 +140,22 @@ index 4134fb6..56e4280 100644
  	}
  	defer server.Close()
  
-@@ -104,8 +104,9 @@ func executeRun(cmd *base.Command, args []string) {
+@@ -105,8 +107,16 @@ func executeRun(cmd *base.Command, args []string) {
  
  	{
  		osSignals := make(chan os.Signal, 1)
 -		signal.Notify(osSignals, os.Interrupt, syscall.SIGTERM)
-+		signal.Notify(osSignals, os.Interrupt, syscall.SIGUSR2)
- 		<-osSignals
-+		signalledExit = true
+-		<-osSignals
++		stopChan = make(chan struct {})
++		signal.Notify(osSignals, os.Interrupt, syscall.SIGUSR1)
++		defer signal.Stop(osSignals)
++
++		select {
++		case <-osSignals:
++			signalledExit = true
++		case <- stopChan:
++			signalledExit = true
++		}
  	}
  }
  

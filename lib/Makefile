@@ -1,6 +1,6 @@
 # go/Makefile
 
-XRAY := Xray-core-24.12.18
+XRAY := Xray-core-25.5.16
 XRAY_DIR := $(CURDIR)/../thirdparty/$(XRAY)
 CONFIGURATION_BUILD_DIR ?= $(CURDIR)/out
 CONFIGURATION_TEMP_DIR ?= $(CURDIR)/.tmp
@@ -24,7 +24,7 @@ JAVAC := javac
 JAR := jar
 ZIP := zip
 
-GOFLAGS := -ldflags=-w -trimpath -v -buildmode=c-shared
+GOFLAGS := -ldflags="-s -w" -trimpath -v -buildmode=c-shared
 
 default: $(DESTDIR)/$(AAR_FILE)
 
