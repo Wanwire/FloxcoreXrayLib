@@ -43,45 +43,45 @@ $(GOROOT)/.prepared:
 $(AAR_DIR)/jni/arm64-v8a/$(JNI_LIB_NAME).so: src/xray_jni.c $(AAR_DIR)/jni/arm64-v8a/$(LIB_NAME).so
 	@mkdir -p $(@D)
 	@mv $(@D)/*.h $(@D)/libxray-go-android.h
-	$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android$(AAP_PLATFORM)-clang $< -shared -I$(JNI_INCLUDE) -o $@ -I $(@D) -L $(@D) -lxray-go-android
+	$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android$(AAP_PLATFORM)-clang $< -shared -Wl,-z,max-page-size=16384 -I$(JNI_INCLUDE) -o $@ -I $(@D) -L $(@D) -lxray-go-android
 	@rm $(@D)/*.h
 
 $(AAR_DIR)/jni/arm64-v8a/$(LIB_NAME).so: $(GOROOT)/.prepared $(XRAY_DIR)/go.mod
 	@mkdir -p $(@D)
-	@cd $(XRAY_DIR) && GOOS=android GOARCH=arm64 CGO_ENABLED=1 CC=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android$(AAP_PLATFORM)-clang \
+	@cd $(XRAY_DIR) && GOOS=android GOARCH=arm64 CGO_ENABLED=1 CC=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/aarch64-linux-android$(AAP_PLATFORM)-clang CGO_LDFLAGS="-O2 -s -w -Wl,-z,max-page-size=16384" \
 		$(GO) build $(GOFLAGS) -o $@ ./main
 
 $(AAR_DIR)/jni/armeabi-v7a/$(JNI_LIB_NAME).so: src/xray_jni.c $(AAR_DIR)/jni/armeabi-v7a/$(LIB_NAME).so
 	@mkdir -p $(@D)
 	@mv $(@D)/*.h $(@D)/libxray-go-android.h
-	@$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi$(AAP_PLATFORM)-clang $< -shared -I$(JNI_INCLUDE) -o $@ -I $(@D) -L $(@D) -lxray-go-android
+	@$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi$(AAP_PLATFORM)-clang $< -shared -Wl,-z,max-page-size=16384 -I$(JNI_INCLUDE) -o $@ -I $(@D) -L $(@D) -lxray-go-android
 	@rm $(@D)/*.h
 
 $(AAR_DIR)/jni/armeabi-v7a/$(LIB_NAME).so: $(GOROOT)/.prepared $(XRAY_DIR)/go.mod
 	@mkdir -p $(@D)
-	@cd $(XRAY_DIR) && GOOS=android GOARCH=arm CGO_ENABLED=1 CC=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi$(AAP_PLATFORM)-clang GOARM=7 \
+	@cd $(XRAY_DIR) && GOOS=android GOARCH=arm CGO_ENABLED=1 CC=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi$(AAP_PLATFORM)-clang GOARM=7 CGO_LDFLAGS="-O2 -s -w -Wl,-z,max-page-size=16384" \
 		$(GO) build $(GOFLAGS) -o $@ ./main
 
 $(AAR_DIR)/jni/x86/$(JNI_LIB_NAME).so: src/xray_jni.c $(AAR_DIR)/jni/x86/$(LIB_NAME).so
 	@mkdir -p $(@D)
 	@mv $(@D)/*.h $(@D)/libxray-go-android.h
-	@$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android$(AAP_PLATFORM)-clang $< -shared -I$(JNI_INCLUDE) -o $@ -I $(@D) -L $(@D) -lxray-go-android
+	@$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android$(AAP_PLATFORM)-clang $< -shared -Wl,-z,max-page-size=16384 -I$(JNI_INCLUDE) -o $@ -I $(@D) -L $(@D) -lxray-go-android
 	@rm $(@D)/*.h
 
 $(AAR_DIR)/jni/x86/$(LIB_NAME).so: $(GOROOT)/.prepared $(XRAY_DIR)/go.mod
 	@mkdir -p $(@D)
-	@cd $(XRAY_DIR) && GOOS=android GOARCH=386 CGO_ENABLED=1 CC=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android$(AAP_PLATFORM)-clang \
+	@cd $(XRAY_DIR) && GOOS=android GOARCH=386 CGO_ENABLED=1 CC=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android$(AAP_PLATFORM)-clang CGO_LDFLAGS="-O2 -s -w -Wl,-z,max-page-size=16384" \
 		$(GO) build $(GOFLAGS) -o $@ ./main
 
 $(AAR_DIR)/jni/x86_64/$(JNI_LIB_NAME).so: src/xray_jni.c $(AAR_DIR)/jni/x86_64/$(LIB_NAME).so
 	@mkdir -p $(@D)
 	@mv $(@D)/*.h $(@D)/libxray-go-android.h
-	@$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android$(AAP_PLATFORM)-clang $< -shared -I$(JNI_INCLUDE) -o $@ -I $(@D) -L $(@D) -lxray-go-android
+	@$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android$(AAP_PLATFORM)-clang $< -shared -Wl,-z,max-page-size=16384 -I$(JNI_INCLUDE) -o $@ -I $(@D) -L $(@D) -lxray-go-android
 	@rm $(@D)/*.h
 
 $(AAR_DIR)/jni/x86_64/$(LIB_NAME).so: $(GOROOT)/.prepared $(XRAY_DIR)/go.mod
 	@mkdir -p $(@D)
-	@cd $(XRAY_DIR) && GOOS=android GOARCH=amd64 CGO_ENABLED=1 CC=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android$(AAP_PLATFORM)-clang \
+	@cd $(XRAY_DIR) && GOOS=android GOARCH=amd64 CGO_ENABLED=1 CC=$(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android$(AAP_PLATFORM)-clang CGO_LDFLAGS="-O2 -s -w -Wl,-z,max-page-size=16384"\
 		$(GO) build $(GOFLAGS) -o $@ ./main
 
 # Rules to compile the Java file
