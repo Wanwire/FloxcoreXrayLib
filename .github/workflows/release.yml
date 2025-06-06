@@ -23,7 +23,7 @@ jobs:
       - name: Prepare NDK
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r27c
+          ndk-version: r28b
           add-to-path: true
       - name: Setup Go-1.22.x
         uses: actions/setup-go@v4
