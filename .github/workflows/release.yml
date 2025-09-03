@@ -32,7 +32,7 @@ jobs:
           export PATH=$PATH:~/go/bin
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3.2.0
+        uses: android-actions/setup-android@v3
         with:
           log-accepted-android-sdk-licenses: false
           cmdline-tools-version: '12266719'
@@ -43,13 +43,6 @@ jobs:
         with:
           ndk-version: r28b
           add-to-path: true
-
-#      - name: Install NDK
-#        run: |
-#          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-#            --channel=3 \
-#            --install "ndk;29.0.13113456"
-#          echo "NDK_HOME=$ANDROID_HOME/ndk/29.0.13113456" >> $GITHUB_ENV
 
       - name: Build aar
         run: |
