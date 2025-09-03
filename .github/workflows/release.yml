@@ -20,19 +20,41 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Prepare NDK
+
+      - name: Setup Golang
+        uses: actions/setup-go@v5.4.0
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Setup Gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          export PATH=$PATH:~/go/bin
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3.2.0
+        with:
+          log-accepted-android-sdk-licenses: false
+          cmdline-tools-version: '12266719'
+          packages: 'platforms;android-35 build-tools;35.0.0 platform-tools'
+
+      - name: Setup NDK
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r28b
           add-to-path: true
-      - name: Setup Go-1.22.x
-        uses: actions/setup-go@v4
-        with:
-          # Semantic version range syntax or exact version of Go
-          go-version: '1.22.x'
-        
+
+#      - name: Install NDK
+#        run: |
+#          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+#            --channel=3 \
+#            --install "ndk;29.0.13113456"
+#          echo "NDK_HOME=$ANDROID_HOME/ndk/29.0.13113456" >> $GITHUB_ENV
+
       - name: Build aar
-        run: make
+        run: |
+          gomobile init
+          CGO_LDFLAGS="-Wl,-z,max-page-size=16384" gomobile bind -v -androidapi 21 -trimpath -ldflags='-s -w -buildid=' ./
 
       - name: Tag release
         uses: actions/github-script@v5
@@ -46,8 +68,10 @@ jobs:
             })
 
       - name: Upload Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           draft: false
           tag_name: ${{ github.event.inputs.version }}
-          files: ./build/libxray-go-android.aar
+          files: |
+            ./libxraygo.aar
+            ./libxraygo-sources.jar
