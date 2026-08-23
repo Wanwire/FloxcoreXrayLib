@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 
 	xraycoreapplog "github.com/xtls/xray-core/app/log"
 	xraycoreappstats "github.com/xtls/xray-core/app/stats"
@@ -19,6 +20,7 @@ import (
 	xraycorestats "github.com/xtls/xray-core/features/stats"
 	xraycoreserial "github.com/xtls/xray-core/infra/conf/serial"
 	_ "github.com/xtls/xray-core/main/distro/all"
+	xraycoreinternet "github.com/xtls/xray-core/transport/internet"
 	mobasset "golang.org/x/mobile/asset"
 )
 
@@ -33,6 +35,63 @@ type XrayCoreCallbackHandler interface {
 	OnStartFailure(string) int
 	OnStop() int
 	OnEmitStatus(int, string) int
+}
+
+// XrayCoreSocketProtector lets the host app exempt every outbound socket
+// xray-core dials from VPN routing (Android's VpnService.protect) before the
+// socket connects, so xray's own traffic cannot loop back into the TUN device.
+// This allows apps to avoid network traffic from Xray looping back on itself
+// without having to exclude their traffic from the VPN
+// (addDisallowedApplication).
+type XrayCoreSocketProtector interface {
+	// OnProtectFd protects one socket file descriptor and returns whether it
+	// succeeded. Called on an arbitrary Go thread, before the socket connects.
+	OnProtectFd(fd int) bool
+}
+
+var (
+	socketProtectorMutex sync.Mutex
+	socketProtector      XrayCoreSocketProtector
+	dialerControllerOnce sync.Once
+)
+
+// RegisterSocketProtector installs p as the protector consulted for every
+// outbound socket xray-core dials from now on. Call it before starting the
+// core; pass nil to stop protecting sockets again. Apps that never call this
+// keep the old behavior.
+func RegisterSocketProtector(p XrayCoreSocketProtector) {
+	socketProtectorMutex.Lock()
+	socketProtector = p
+	socketProtectorMutex.Unlock()
+
+	// xray-core's dialer controller registry is append-only, so register a
+	// single wrapper once and let it consult the current protector per dial.
+	dialerControllerOnce.Do(func() {
+		if err := xraycoreinternet.RegisterDialerController(protectSocket); err != nil {
+			log.Printf("Failed to register socket protector dialer controller: %v", err)
+		}
+	})
+}
+
+func protectSocket(network, address string, conn syscall.RawConn) error {
+	socketProtectorMutex.Lock()
+	p := socketProtector
+	socketProtectorMutex.Unlock()
+	if p == nil {
+		return nil
+	}
+
+	var protected bool
+	if err := conn.Control(func(fd uintptr) {
+		protected = p.OnProtectFd(int(fd))
+	}); err != nil {
+		return fmt.Errorf("socket protector: control failed for %s %s: %w", network, address, err)
+	}
+	// Fail the dial rather than let an unprotected socket loop into the TUN.
+	if !protected {
+		return fmt.Errorf("socket protector: host app failed to protect %s socket to %s", network, address)
+	}
+	return nil
 }
 
 type XrayCoreController struct {
