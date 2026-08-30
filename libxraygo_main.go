@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -238,6 +239,11 @@ func (controller *XrayCoreController) doStop() error {
 		controller.CallbackHandler.OnEmitStatus(0, "xray-core stopped")
 		controller.coreInstance = nil
 	}
+
+	// Return the freed pages to the OS now, while coreMutex is still held:
+	// a configuration reload must not start the next instance before the
+	// memory of the old instance is gone, or both are resident at once
+	debug.FreeOSMemory()
 
 	return nil
 }
