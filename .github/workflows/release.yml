@@ -47,7 +47,7 @@ jobs:
       - name: Build aar
         run: |
           gomobile init
-          CGO_LDFLAGS="-Wl,-z,max-page-size=16384" gomobile bind -v -androidapi 21 -trimpath -ldflags='-s -w -buildid=' ./
+          CGO_LDFLAGS="-Wl,-z,max-page-size=16384" gomobile bind -v -androidapi 21 -trimpath -ldflags='-s -w -buildid= -checklinkname=0' ./
 
       - name: Tag release
         uses: actions/github-script@v8
