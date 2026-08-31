@@ -31,6 +31,18 @@ const (
 	envTunFd = "xray.tun.fd"
 )
 
+// The Go runtime memory limit. Android has no hard cap like the iOS network
+// extension, but the VPN runs as a long-lived background service whose
+// footprint is weighed under memory pressure, so the garbage collector must
+// keep the heap small. The limit is soft: the runtime collects more often and
+// returns free pages eagerly near the limit, but it exceeds the limit instead
+// of thrashing or panicking (garbage collection stays capped at 50% CPU).
+const memoryLimitBytes = 35 << 20
+
+func init() {
+	debug.SetMemoryLimit(memoryLimitBytes)
+}
+
 type XrayCoreCallbackHandler interface {
 	OnStart() int
 	OnStartFailure(string) int
